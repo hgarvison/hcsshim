@@ -296,6 +296,11 @@ jobs:
       - run: go build ./internal/tools/securitypolicy
       - run: go build ./internal/tools/uvmboot
       - run: go build ./internal/tools/zapdir
+      - run: go build ./cmd/rootfs
+      - run: |
+          $Env:GOOS = "linux"; 
+          $Env:GOARCH = "amd64"; 
+          go build ./cmd/rootfs
 
       - uses: actions/upload-artifact@v2
         if: ${{ github.event_name == 'pull_request' }}
@@ -314,6 +319,8 @@ jobs:
             securitypolicy.exe
             uvmboot.exe
             zapdir.exe
+            rootfs.exe
+            rootfs
 
   build_gcs:
     needs: [verify-main-vendor, test-linux]
@@ -342,3 +349,23 @@ jobs:
 
       - name: Build
         run: make BASE=./base.tar.gz all
+
+  create_release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v2
+        if: startsWith(github.ref, 'refs/tags/v')
+        with:
+          name: binaries
+          
+      - name: Publish release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            rootfs.exe
+            rootfs
+            
+            
